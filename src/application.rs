@@ -45,6 +45,7 @@ impl<'a> ApplicationFlow<'a> {
             })
             .await
             .expect("Failed to find an appropriate adapter");
+        info!("chosen adapter is {:?}", adapter.get_info());
 
         // Create the logical device and command queue
         let (device, queue) = adapter
@@ -142,7 +143,7 @@ impl<'a> ApplicationHandler for ApplicationFlow<'a> {
         match event {
             WindowEvent::Resized(new_size) => {
                 // Reconfigure the surface with the new size
-                info!("Resized to {:?}", new_size);
+                info!("resized to {:?}", new_size);
                 self.config.width = new_size.width.max(1);
                 self.config.height = new_size.height.max(1);
                 self.surface.configure(&self.device, &self.config);

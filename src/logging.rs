@@ -1,7 +1,14 @@
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::filter::EnvFilter;
+
 pub fn setup_tracing() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        tracing_subscriber::fmt::init();
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::new(&format!(
+                "learn_wgpu=debug,wgpu=error,wgpu_hal=error"
+            )))
+            .init();
     }
     #[cfg(target_arch = "wasm32")]
     {
@@ -20,9 +27,9 @@ pub fn setup_tracing() {
     }
 
     // test all levels of logging
-    tracing::trace!("This is a trace message");
-    tracing::debug!("This is a debug message");
-    tracing::info!("This is an info message");
-    tracing::warn!("This is a warning message");
-    tracing::error!("This is an error message");
+    tracing::trace!("this is a trace message");
+    tracing::debug!("this is a debug message");
+    tracing::info!("this is an info message");
+    tracing::warn!("this is a warning message");
+    tracing::error!("this is an error message");
 }
