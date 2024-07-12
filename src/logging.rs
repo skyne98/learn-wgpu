@@ -25,11 +25,4 @@ pub fn setup_tracing() {
             .without_time()
             .init();
     }
-
-    // test all levels of logging
-    tracing::trace!("this is a trace message");
-    tracing::debug!("this is a debug message");
-    tracing::info!("this is an info message");
-    tracing::warn!("this is a warning message");
-    tracing::error!("this is an error message");
 }
