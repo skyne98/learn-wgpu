@@ -13,6 +13,8 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
+use crate::model::Model;
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
@@ -108,6 +110,7 @@ impl<'a> ApplicationFlow<'a> {
                     // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
                     required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                         .using_resolution(adapter.limits()),
+                    memory_hints: wgpu::MemoryHints::Performance,
                 },
                 None,
             )
@@ -160,12 +163,18 @@ impl<'a> ApplicationFlow<'a> {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         });
 
         let config = surface
             .get_default_config(&adapter, size.width, size.height)
             .unwrap();
         surface.configure(&device, &config);
+
+        // Load the model
+        let model_bytes = include_bytes!("../assets/anime/source/Kaede_T4_9922.glb");
+        let model = Model::from_bytes(&device, &queue, model_bytes, "Kaede_T4_9922")
+            .expect("Failed to load model");
 
         Self {
             close_requested: false,
