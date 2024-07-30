@@ -11,8 +11,9 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 wgpu = "22.0.0"
 pollster = "0.3.0"
 bytemuck = { version = "1.16.1", features = ["derive"] }
-goth-gltf = "0.1.1"
+gltf = "1.4.1"
 anyhow = "1.0.86"
+cgmath = "0.18.0"
 
 [dependencies.image]
 version = "0.25.2"

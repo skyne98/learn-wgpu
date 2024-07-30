@@ -1,7 +1,9 @@
 pub mod application;
 pub mod logging;
 pub mod model;
+pub mod model_renderer;
 pub mod texture;
+pub mod uniform_state;
 
 use application::ApplicationFlow;
 use std::borrow::Cow;

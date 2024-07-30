@@ -6,22 +6,39 @@ pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
+    pub bind_group: wgpu::BindGroup,
 }
 
 impl Texture {
     pub fn from_bytes(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        binding_layout: &wgpu::BindGroupLayout,
         bytes: &[u8],
         label: &str,
     ) -> Result<Self> {
         let img = image::load_from_memory(bytes)?;
-        Self::from_image(device, queue, &img, Some(label))
+        Self::from_image(device, queue, binding_layout, &img, Some(label))
+    }
+
+    pub fn from_rgba8(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        binding_layout: &wgpu::BindGroupLayout,
+        rgba: &[u8],
+        dimensions: (u32, u32),
+        label: Option<&str>,
+    ) -> Result<Self> {
+        let img = image::DynamicImage::ImageRgba8(
+            image::RgbaImage::from_raw(dimensions.0, dimensions.1, rgba.to_vec()).unwrap(),
+        );
+        Self::from_image(device, queue, binding_layout, &img, label)
     }
 
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        binding_layout: &wgpu::BindGroupLayout,
         img: &image::DynamicImage,
         label: Option<&str>,
     ) -> Result<Self> {
@@ -71,10 +88,27 @@ impl Texture {
             ..Default::default()
         });
 
+        // Create a bind group
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &binding_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some("diffuse_bind_group"),
+        });
+
         Ok(Self {
             texture,
             view,
             sampler,
+            bind_group,
         })
     }
 }
