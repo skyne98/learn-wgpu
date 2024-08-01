@@ -39,6 +39,7 @@ pub struct ApplicationFlow<'a> {
     uniform_state: UniformState,
     camera: Camera,
     depth_texture: Texture,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl<'a> ApplicationFlow<'a> {
@@ -214,6 +215,7 @@ impl<'a> ApplicationFlow<'a> {
             uniform_state,
             camera,
             depth_texture,
+            texture_bind_group_layout,
         }
     }
 }
@@ -275,6 +277,13 @@ impl<'a> ApplicationHandler for ApplicationFlow<'a> {
                 self.config.width = new_size.width.max(1);
                 self.config.height = new_size.height.max(1);
                 self.surface.configure(&self.device, &self.config);
+                // Resize the depth texture
+                self.depth_texture = Texture::create_depth_texture(
+                    &self.device,
+                    &self.config,
+                    &self.texture_bind_group_layout,
+                    "depth_texture",
+                );
                 // On macos the window needs to be redrawn manually after resizing
                 self.window.request_redraw();
             }
