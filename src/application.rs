@@ -50,7 +50,9 @@ impl<'a> ApplicationFlow<'a> {
 
         let instance = wgpu::Instance::default();
 
-        let surface: wgpu::Surface<'a> = instance.create_surface(window).unwrap();
+        let surface: wgpu::Surface<'a> = instance
+            .create_surface(window)
+            .expect("Failed to create surface");
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -95,7 +97,10 @@ impl<'a> ApplicationFlow<'a> {
 
         let config = surface
             .get_default_config(&adapter, size.width, size.height)
-            .unwrap();
+            .expect("Failed to get default config");
+        let capabilities = surface.get_capabilities(&adapter);
+        let surface_format = capabilities.formats[0];
+        info!("Surface format: {:?}", surface_format);
         surface.configure(&device, &config);
 
         // Bindings
@@ -124,7 +129,7 @@ impl<'a> ApplicationFlow<'a> {
 
         let general_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("General Buffer"),
-            size: 64,
+            size: 80,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -187,6 +192,7 @@ impl<'a> ApplicationFlow<'a> {
         camera_uniform.update_view_proj(&camera);
         let mut uniform_state = UniformState::default();
         uniform_state.camera = camera_uniform;
+        uniform_state.is_srgb = if surface_format.is_srgb() { 1.0 } else { 0.0 };
 
         // Depth texture
         let depth_texture = Texture::create_depth_texture(
@@ -273,7 +279,6 @@ impl<'a> ApplicationHandler for ApplicationFlow<'a> {
             }
             WindowEvent::Resized(new_size) => {
                 // Reconfigure the surface with the new size
-                info!("resized to {:?}", new_size);
                 self.config.width = new_size.width.max(1);
                 self.config.height = new_size.height.max(1);
                 self.surface.configure(&self.device, &self.config);
