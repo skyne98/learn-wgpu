@@ -65,7 +65,10 @@ impl ModelMesh {
             .texture_index
             .map(|index| &textures[index])
             .unwrap_or(&textures[0]);
-        let bind_group = &texture.bind_group;
+        let bind_group = texture
+            .bind_group
+            .as_ref()
+            .expect("Texture has no bind group");
         render_pass.set_bind_group(0, bind_group, &[]);
         render_pass.draw_indexed(0..self.num_elements, 0, 0..1);
     }

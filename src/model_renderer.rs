@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::model::TextureVertex;
+use crate::{model::TextureVertex, texture::Texture};
 
 pub struct ModelRenderer {
     pub layout: wgpu::PipelineLayout,
@@ -39,7 +39,13 @@ impl ModelRenderer {
                 targets: &[Some(swapchain_format.into())],
             }),
             primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less, // 1.
+                stencil: wgpu::StencilState::default(),     // 2.
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
             cache: None,

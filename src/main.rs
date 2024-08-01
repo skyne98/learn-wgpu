@@ -1,4 +1,5 @@
 pub mod application;
+pub mod camera;
 pub mod logging;
 pub mod model;
 pub mod model_renderer;

@@ -6,14 +6,17 @@ use std::time;
 use ::tracing::{info, warn};
 #[cfg(web_platform)]
 use web_time as time;
+use wgpu::util::DeviceExt;
 use winit::application::ApplicationHandler;
 use winit::event::{KeyEvent, StartCause, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Window, WindowId};
 
+use crate::camera::{Camera, CameraUniform};
 use crate::model::Model;
 use crate::model_renderer::ModelRenderer;
+use crate::texture::Texture;
 use crate::uniform_state::UniformState;
 
 pub struct ApplicationFlow<'a> {
@@ -34,6 +37,8 @@ pub struct ApplicationFlow<'a> {
     uniform_bind_group: wgpu::BindGroup,
     uniform_buffer: wgpu::Buffer,
     uniform_state: UniformState,
+    camera: Camera,
+    depth_texture: Texture,
 }
 
 impl<'a> ApplicationFlow<'a> {
@@ -163,6 +168,33 @@ impl<'a> ApplicationFlow<'a> {
             &general_bind_group_layout,
         );
 
+        // Camera
+        let camera = Camera {
+            // position the camera 1 unit up and 2 units back
+            // +z is out of the screen
+            eye: (0.0, 1.0, 2.0).into(),
+            // have it look at the origin
+            target: (0.0, 0.0, 0.0).into(),
+            // which way is "up"
+            up: cgmath::Vector3::unit_y(),
+            aspect: config.width as f32 / config.height as f32,
+            fovy: 45.0,
+            znear: 0.1,
+            zfar: 100.0,
+        };
+        let mut camera_uniform = CameraUniform::new();
+        camera_uniform.update_view_proj(&camera);
+        let mut uniform_state = UniformState::default();
+        uniform_state.camera = camera_uniform;
+
+        // Depth texture
+        let depth_texture = Texture::create_depth_texture(
+            &device,
+            &config,
+            &texture_bind_group_layout,
+            "depth_texture",
+        );
+
         Self {
             close_requested: false,
             window,
@@ -179,7 +211,9 @@ impl<'a> ApplicationFlow<'a> {
             uniform_layout: general_bind_group_layout,
             uniform_bind_group: general_bind_group,
             uniform_buffer: general_buffer,
-            uniform_state: UniformState::default(),
+            uniform_state,
+            camera,
+            depth_texture,
         }
     }
 }
@@ -217,21 +251,23 @@ impl<'a> ApplicationHandler for ApplicationFlow<'a> {
 
                 // Move the model with WASD
                 if event.physical_key == PhysicalKey::Code(KeyCode::KeyW) {
-                    self.uniform_state.position[2] -= 0.1;
+                    self.camera.eye.z -= 0.1;
                 } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyS) {
-                    self.uniform_state.position[2] += 0.1;
+                    self.camera.eye.z += 0.1;
                 } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyA) {
-                    self.uniform_state.position[0] -= 0.1;
+                    self.camera.eye.x -= 0.1;
                 } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyD) {
-                    self.uniform_state.position[0] += 0.1;
+                    self.camera.eye.x += 0.1;
                 }
 
                 // And Space, Shift to move up and down
                 if event.physical_key == PhysicalKey::Code(KeyCode::Space) {
-                    self.uniform_state.position[1] += 0.1;
+                    self.camera.eye.y += 0.1;
                 } else if event.physical_key == PhysicalKey::Code(KeyCode::ShiftLeft) {
-                    self.uniform_state.position[1] -= 0.1;
+                    self.camera.eye.y -= 0.1;
                 }
+
+                self.uniform_state.camera.update_view_proj(&self.camera);
             }
             WindowEvent::Resized(new_size) => {
                 // Reconfigure the surface with the new size
@@ -271,7 +307,14 @@ impl<'a> ApplicationHandler for ApplicationFlow<'a> {
                                 store: wgpu::StoreOp::Store,
                             },
                         })],
-                        depth_stencil_attachment: None,
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                            view: &self.depth_texture.view,
+                            depth_ops: Some(wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(1.0),
+                                store: wgpu::StoreOp::Store,
+                            }),
+                            stencil_ops: None,
+                        }),
                         timestamp_writes: None,
                         occlusion_query_set: None,
                     });
